@@ -2,7 +2,7 @@
 
 simple streamlit app to keep track of the essentials
 
-## Semantics
+## Idea
 
 simple tracker to keep track of the essentials
 
@@ -23,10 +23,4 @@ simple tracker to keep track of the essentials
 - sqlite
 - sqlalchemy
 - pandas
-
-## Code Flow
-
-- load website
-- load exisitng data
-- display graphs & KPIs & current data in table
-- add new entry
+- plotly
