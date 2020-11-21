@@ -1,4 +1,3 @@
-from pandas.io.pytables import Term
 import streamlit as st
 import numpy as np
 import pandas as pd
@@ -22,6 +21,10 @@ st.markdown(f" Today is {dt_weekday} - {dt_day}. of {dt_month}.")
 #######
 # SIDEBAR
 st.sidebar.title("How did you do today?")
+
+habit_file = st.sidebar.text_input(
+    "where's your data?", value="./habit_tracker/resources/habit_data.csv"
+)
 
 # Slider Metrics
 sidebar_sleep = st.sidebar.slider(
@@ -63,7 +66,7 @@ add_row = st.sidebar.button("+ Add values")
 
 #######
 # DATA
-df = data.load()
+df = data.load(filename=habit_file)
 
 # add data
 if add_row:
@@ -81,16 +84,16 @@ if add_row:
         "work": sidebar_work,
     }
 
-    data.add(df, df_dict)
+    data.add(df=df, append_dict=df_dict, filename=habit_file)
 
 # remove data
 selectbox_date = st.sidebar.selectbox("Remove date:", options=df.date.unique())
 drop_row = st.sidebar.button("- Remove values")
 
 if drop_row:
-    data.drop(df, date_index=selectbox_date)
+    data.drop(df=df, date_index=selectbox_date, filename=habit_file)
 
-df = data.load()
+df = data.load(filename=habit_file)
 
 
 #######
@@ -128,4 +131,3 @@ with graph_container:
 
 # def update_entry():
 #     raise NotImplementedError
-
