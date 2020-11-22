@@ -41,16 +41,28 @@ sidebar_data_container = st.sidebar.beta_expander(
 )
 
 with sidebar_data_container:
-    # sidebar_load_file = st.file_uploader(
-    #     "Load data"
-    # )
+    st.markdown("### Folder you want to load/save data to")
     sidebar_folder_path = st.text_input(
         "Choose a folder", value="."
     )
 
-    sidebar_load_file_name = st.selectbox(
-        "Choose a file", options=[None]+os.listdir(sidebar_folder_path)
-    )
+    st.markdown("### Load an existing file")
+    try:
+        sidebar_load_file_name = st.selectbox(
+            "Choose a file", options=[None]+os.listdir(sidebar_folder_path)
+        )
+    except FileNotFoundError:
+        st.markdown(
+            f"""❌ <b>EEEHHHHT!</b>
+            <br>🤔 That directory does not exist.
+            <br>Please type in an existing directory
+            <br>
+            <br>Here is a list of items in your current working directory:
+            <br><i>{os.listdir(".")}</i>
+            """,
+            unsafe_allow_html=True
+        )
+        st.stop()
 
     st.markdown("### or create a new file")
 
@@ -74,21 +86,21 @@ with sidebar_input_container:
 
     # Slider Metrics
     sidebar_sleep = st.slider(
-        "How much did you sleep today?",
+        "How much did you sleep?",
         min_value=0.0, max_value=12.0, value=8.0, step=0.1
     )
     sidebar_mood = st.slider(
-        "What mood are you in?",
+        "What mood were you in?",
         min_value=1, max_value=7, value=5, step=1
     )
     sidebar_energy = st.slider(
-        "How energized do you feel?",
+        "How energized did you feel?",
         min_value=1, max_value=7, value=5, step=1
     )
 
     # Radio Button Metrics
     sidebar_food = st.radio(
-        "Did you eat healthy today?", (0, 1)
+        "Did you eat healthy?", (0, 1)
     )
     sidebar_exercise = st.radio(
         "Did you exercise?", (0, 1)
@@ -115,10 +127,10 @@ with sidebar_input_container:
 
 #######
 # DATA
-if (sidebar_load_file_name is not None) and (sidebar_create_file_name.endswith(".csv")):
-    abs_folderpath = os.path.abspath(sidebar_folder_path)
-    file = os.path.join(abs_folderpath, sidebar_load_file_name)
+abs_folderpath = os.path.abspath(sidebar_folder_path)
 
+if (sidebar_load_file_name is not None) and (sidebar_create_file_name.endswith(".csv")):
+    file = os.path.join(abs_folderpath, sidebar_load_file_name)
     df = data.load(filename=file)
 
     pref_dict["data"]["filepath"] = abs_folderpath
@@ -126,7 +138,12 @@ if (sidebar_load_file_name is not None) and (sidebar_create_file_name.endswith("
     data.save_preferences(pref_dict)
 
 elif sidebar_create_file_button:
+    file = os.path.join(abs_folderpath, sidebar_create_file_name)
     df = data.create(filename=file)
+
+    pref_dict["data"]["filepath"] = abs_folderpath
+    pref_dict["data"]["filename"] = sidebar_create_file_name
+    data.save_preferences(pref_dict)
 
 elif (habit_data_exists is True) and (sidebar_load_file_name is None):
     df = data.load(filename=file)
@@ -165,8 +182,13 @@ sidebar_remove_data_container = st.sidebar.beta_expander(
 )
 
 with sidebar_remove_data_container:
+    try:
+        opt = df.date.unique()
+    except AttributeError:
+        opt = [None]
+
     selectbox_remove_date = st.selectbox(
-        "Remove data:", options=df.date.unique()
+        "Remove data:", options=opt
     )
     drop_row = st.button("- Remove values")
 
@@ -199,9 +221,11 @@ st.markdown("### Plot your habits over time")
 graph_container, col_select_container = st.beta_columns([3, 1])
 
 with col_select_container:
+    opt = df.columns.to_list()
+    opt.remove("date")
     selectbox_columns = st.selectbox(
         "Select which column to plot:",
-        options=df.columns.to_list()
+        options=opt
     )
 
 with graph_container:
