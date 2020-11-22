@@ -1,9 +1,22 @@
+import os
 import streamlit as st
-import numpy as np
-import pandas as pd
 import datetime as dt
 import plotly.express as px
 from habit_tracker import data
+
+#######
+# SETUP
+# load previous config
+pref_dict = data.load_preferences()
+filepath = pref_dict.get("data").get("filepath")
+filename = pref_dict.get("data").get("filename")
+
+if (filename in os.listdir(filepath)) and filename.endswith(".csv"):
+    habit_data_exists = True
+    file = os.path.join(filepath, filename)
+else:
+    habit_data_exists = False
+
 
 #######
 # HEADER
@@ -20,55 +33,113 @@ st.markdown(f" Today is {dt_weekday} - {dt_day}. of {dt_month}.")
 
 #######
 # SIDEBAR
-st.sidebar.title("How did you do today?")
+st.sidebar.title("Mission Control")
 
-habit_file = st.sidebar.text_input(
-    "where's your data?", value="./habit_tracker/resources/habit_data.csv"
-)
-
-# Slider Metrics
-sidebar_sleep = st.sidebar.slider(
-    "sleep", min_value=0.0, max_value=12.0, value=8.0, step=0.1
-)
-sidebar_mood = st.sidebar.slider(
-    "mood", min_value=1, max_value=7, value=5, step=1
-)
-sidebar_energy = st.sidebar.slider(
-    "energy", min_value=1, max_value=7, value=5, step=1
+# LOAD/CREATE FILE
+sidebar_data_container = st.sidebar.beta_expander(
+    "Load or Create a file", expanded=False
 )
 
-# Radio Button Metrics
-sidebar_food = st.sidebar.radio(
-    "food", (0, 1)
-)
-sidebar_exercise = st.sidebar.radio(
-    "exercise", (0, 1)
-)
-sidebar_meditation = st.sidebar.radio(
-    "meditation", (0, 1)
-)
-sidebar_reading = st.sidebar.radio(
-    "reading", (0, 1)
-)
-sidebar_journaling = st.sidebar.radio(
-    "journaling", (0, 1)
-)
-sidebar_learning = st.sidebar.radio(
-    "learning", (0, 1)
-)
-sidebar_work = st.sidebar.radio(
-    "work", (0, 1)
+with sidebar_data_container:
+    # sidebar_load_file = st.file_uploader(
+    #     "Load data"
+    # )
+    sidebar_folder_path = st.text_input(
+        "Choose a folder", value="."
+    )
+
+    sidebar_load_file_name = st.selectbox(
+        "Choose a file", options=[None]+os.listdir(sidebar_folder_path)
+    )
+
+    st.markdown("### or create a new file")
+
+    sidebar_create_file_name = st.text_input(
+        "Choose a file name", value="habit_data.csv"
+    )
+    sidebar_create_file_button = st.button("* Create new file")
+
+
+# INPUT
+sidebar_input_container = st.sidebar.beta_expander(
+    "How did you do today?", expanded=False
 )
 
-# Add data button
-add_row = st.sidebar.button("+ Add values")
+with sidebar_input_container:
+    # Choose Date
+    sidebar_date = st.date_input(
+        "Which day you want to make an entry for?",
+        max_value=dt_now
+    )
+
+    # Slider Metrics
+    sidebar_sleep = st.slider(
+        "How much did you sleep today?",
+        min_value=0.0, max_value=12.0, value=8.0, step=0.1
+    )
+    sidebar_mood = st.slider(
+        "What mood are you in?",
+        min_value=1, max_value=7, value=5, step=1
+    )
+    sidebar_energy = st.slider(
+        "How energized do you feel?",
+        min_value=1, max_value=7, value=5, step=1
+    )
+
+    # Radio Button Metrics
+    sidebar_food = st.radio(
+        "Did you eat healthy today?", (0, 1)
+    )
+    sidebar_exercise = st.radio(
+        "Did you exercise?", (0, 1)
+    )
+    sidebar_meditation = st.radio(
+        "Did you meditate?", (0, 1)
+    )
+    sidebar_reading = st.radio(
+        "Did you read?", (0, 1)
+    )
+    sidebar_journaling = st.radio(
+        "Did you write in your journal?", (0, 1)
+    )
+    sidebar_learning = st.radio(
+        "Did you learn somethign new?", (0, 1)
+    )
+    sidebar_work = st.radio(
+        "Did you work towards your goals?", (0, 1)
+    )
+
+    # Add data button
+    add_row = st.button("+ Add values")
 
 
 #######
 # DATA
-df = data.load(filename=habit_file)
+if (sidebar_load_file_name is not None) and (sidebar_create_file_name.endswith(".csv")):
+    abs_folderpath = os.path.abspath(sidebar_folder_path)
+    file = os.path.join(abs_folderpath, sidebar_load_file_name)
 
-# add data
+    df = data.load(filename=file)
+
+    pref_dict["data"]["filepath"] = abs_folderpath
+    pref_dict["data"]["filename"] = sidebar_load_file_name
+    data.save_preferences(pref_dict)
+
+elif sidebar_create_file_button:
+    df = data.create(filename=file)
+
+elif (habit_data_exists is True) and (sidebar_load_file_name is None):
+    df = data.load(filename=file)
+
+
+
+else:
+    st.markdown("### Create or load a file to continue.")
+    st.stop()
+
+
+# ADD DATA
+# add data logic
 if add_row:
     df_dict = {
         "date": dt_str,
@@ -84,16 +155,33 @@ if add_row:
         "work": sidebar_work,
     }
 
-    data.add(df=df, append_dict=df_dict, filename=habit_file)
+    data.add(df=df, append_dict=df_dict, filename=file)
 
-# remove data
-selectbox_date = st.sidebar.selectbox("Remove date:", options=df.date.unique())
-drop_row = st.sidebar.button("- Remove values")
 
+# REMOVE DATA
+# add function to sidebar
+sidebar_remove_data_container = st.sidebar.beta_expander(
+    "Delete data", expanded=False
+)
+
+with sidebar_remove_data_container:
+    selectbox_remove_date = st.selectbox(
+        "Remove data:", options=df.date.unique()
+    )
+    drop_row = st.button("- Remove values")
+
+# remove data logic
 if drop_row:
-    data.drop(df=df, date_index=selectbox_date, filename=habit_file)
+    data.drop(
+        df=df,
+        date_index=selectbox_remove_date,
+        filename=file
+    )
 
-df = data.load(filename=habit_file)
+
+# RELOAD DATA
+# reload table after dropping/adding values
+df = data.load(filename=file)
 
 
 #######
@@ -101,9 +189,9 @@ df = data.load(filename=habit_file)
 # dataframe
 data_container = st.beta_expander("Display your data", expanded=False)
 
-#data_container, date_select_container = st.beta_columns([3, 1])
+# data_container, date_select_container = st.beta_columns([3, 1])
 with data_container:
-    dataframe = st.dataframe(df.style.highlight_max(axis=0, color="lightgreen"))
+    dataframe = st.dataframe(df)
 
 
 # line plot
