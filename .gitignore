@@ -3,4 +3,4 @@
 *.csv
 *.json
 
-!habit_data.csv
+!preferences.json
