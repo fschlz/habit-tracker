@@ -41,7 +41,7 @@ def create(filename):
 
     filename = helper.check_filename(filename, extension=".csv")
 
-    df.to_csv(f"~/Desktop/{filename}")
+    df.to_csv(filename, index=False)
 
 
 def load_preferences():
