@@ -2,5 +2,6 @@
 *__pycache__
 *.csv
 *.json
+*.ipynb
 
 !preferences.json

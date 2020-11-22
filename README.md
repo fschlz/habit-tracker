@@ -1,6 +1,6 @@
 # Habit Tracker App
 
-## Semantics
+## Idea
 
 simple streamlit app to keep track of the essentials
 
