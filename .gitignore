@@ -5,5 +5,3 @@
 *.csv
 *.json
 *.ipynb
-
-!preferences.json
