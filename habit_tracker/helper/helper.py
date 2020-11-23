@@ -1,6 +1,6 @@
 
 
-def check_file_naming(filename, extension):
+def check_file_naming(filename: str, extension: str) -> str:
     """checks filename for extension
     appends extension if it's not there
     """
