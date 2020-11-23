@@ -127,7 +127,6 @@ with sidebar_input_container:
 
 #######
 # DATA
-
 # set file name and folder path
 if (sidebar_load_file_name is not None) and (sidebar_create_file_name.endswith(".csv")):
     filepath = sidebar_folder_path
@@ -146,7 +145,7 @@ else:
 
 
 # LOAD DATA
-HabitData = data.Data(filepath=filepath, filename=filename)
+HabitData = data.HabitData(filepath=filepath, filename=filename)
 HabitData.load()
 
 Pref.pref_dict["data"]["filepath"] = filepath
@@ -196,7 +195,7 @@ if drop_row:
 
 # RELOAD DATA
 # reload table after dropping/adding values
-HabitData = data.Data(filepath=filepath, filename=filename)
+HabitData = data.HabitData(filepath=filepath, filename=filename)
 HabitData.load()
 
 
@@ -205,7 +204,6 @@ HabitData.load()
 # dataframe
 data_container = st.beta_expander("Display your data", expanded=True)
 
-# data_container, date_select_container = st.beta_columns([3, 1])
 with data_container:
     dataframe = st.dataframe(HabitData.data)
 
@@ -213,8 +211,9 @@ with data_container:
 # line plot
 st.markdown("### Plot your habits over time")
 
-plot_container = st.beta_container()
-with plot_container:
+plot_container, info_container = st.beta_columns([8, 2])
+
+with info_container:
     opt = HabitData.data.columns.to_list()
     opt.remove("date")
     selectbox_columns = st.selectbox(
@@ -222,8 +221,39 @@ with plot_container:
         options=opt
     )
 
-    px_line_chart = px.bar(HabitData.data, x="date", y=selectbox_columns)
-    line_chart = st.plotly_chart(px_line_chart)
+    m = round(HabitData.data[selectbox_columns].mean(), 2)
+    metric_dict = {
+        "mood": "lvl",
+        "energy": "lvl",
+        "sleep": "h",
+        "food": "%",
+        "exercise": "%",
+        "meditation": "%",
+        "reading": "%",
+        "journaling": "%",
+        "learning": "%",
+        "work": "%",
+    }
+    # {metric_dict.get(selectbox_columns)}
+    st.markdown(f"""# mean // {m}""")
 
-# def display_kpis():
-#     raise NotImplementedError
+with plot_container:
+    px_chart = px.bar(
+        HabitData.data,
+        x="date", y=selectbox_columns,
+        # marginal="box", hover_data=HabitData.data.columns
+    )
+    st.plotly_chart(px_chart, use_container_width=True)
+
+
+# # KPIs
+# st.markdown("### Here's your average performance")
+
+# mean_container = st.beta_container()  # , current_container = st.beta_columns([1, 1])
+# with mean_container:
+#     mean_dict = HabitData.data.mean().to_dict()
+#     for k, v in mean_dict.items():
+#         st.markdown(f"""### {k}:""")
+#         st.markdown(f"""# {v}""")
+
+# st.dataframe(pd.DataFrame(HabitData.data.mean().to_dict(), index=[0]))
