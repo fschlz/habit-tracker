@@ -1,58 +1,96 @@
 import os
 import pandas as pd
 import json
-import streamlit as st
 from ..helper import helper
 
-# TODO: put this into a Data class
-def load(filename):
-    df = pd.read_csv(filename)
-    df = df.sort_values(by="date")
-    # df.date = pd.to_datetime(df.date, format="%Y-%m-%d")
-    return df
+
+class Data():
+    name = "CRUD Operator for Data"
+    description = "Load, save, append, drop or create habit data"
+
+    def __init__(
+        self,
+        filepath: str,
+        filename: str,
+    ):
+        self.file = os.path.join(os.path.abspath(filepath), filename)
+
+    def load(self):
+        df = pd.read_csv(self.file)
+        df = df.sort_values(by="date")
+        self.data = df
+
+    def save(self):
+        self.data.to_csv(self.file, index=False)
+
+    def add(self, append_dict: dict) -> None:
+        self.data = self.data.append(append_dict, ignore_index=True)
+        self.save()
+
+    def drop(self, date_index: str) -> None:
+        self.data = self.data.drop(
+            self.data.loc[self.data.date == date_index].index,
+            axis=0
+        )
+        self.save()
+
+    def create(self) -> None:
+
+        df_cols = [
+            "date",
+            "sleep", "mood", "energy",
+            "food", "exercise", "meditation",
+            "reading", "journaling", "learning", "work"
+        ]
+
+        self.data = pd.DataFrame(columns=df_cols)
+
+        self.file = helper.check_file_naming(self.file, extension=".csv")
+
+        self.save()
+
+    @staticmethod
+    def get_append_dict() -> dict:
+
+        col_dict = {
+            "date": "",
+            "mood": "",
+            "energy": "",
+            "sleep": "",
+            "food": "",
+            "exercise": "",
+            "meditation": "",
+            "reading": "",
+            "journaling": "",
+            "learning": "",
+            "work": "",
+        }
+
+        return col_dict
 
 
-def add(df, append_dict, filename):
-    df = df.append(append_dict, ignore_index=True)
-    df.to_csv(filename, index=False)
+class Preferences():
+    name = "Preferences Operator"
+    description = "Load preferences as a Dict or Save preferences as JSON"
 
+    def __init__(
+        self,
+        filepath: str = "./habit_tracker/config",
+        filename: str = "preferences.json",
+        **kwargs
+    ):
 
-def drop(df, date_index, filename):
-    df = df.drop(df.loc[df.date == date_index].index, axis=0)
-    df.to_csv(filename, index=False)
+        self.filepath = os.path.abspath(filepath)
+        self.filename = filename
 
+        self.file = os.path.join(self.filepath, self.filename)
 
-def create(filename):
+        self.load()
 
-    df_cols = [
-        "date",
-        "sleep",
-        "mood",
-        "energy",
-        "food",
-        "exercise",
-        "meditation",
-        "reading",
-        "journaling",
-        "learning",
-        "work"
-    ]
+    def load(self) -> None:
+        with open(self.file, "r") as f:
+            self.pref_dict = json.load(f)
 
-    df = pd.DataFrame(columns=df_cols)
-
-    filename = helper.check_filename(filename, extension=".csv")
-
-    df.to_csv(filename, index=False)
-
-
-def load_preferences():
-    # load locally saved json file
-    with open("./habit_tracker/config/preferences.json", "r") as file:
-        pref = json.load(file)
-
-    return pref
-
-
-def save_preferences(pref_dict):
-    with open("./habit_tracker/config/preferences.json", "w") as file:
-        json.dump(pref_dict, file, indent=4)
+    def save(self) -> None:
+        with open(self.file, "w") as f:
+            json.dump(self.pref_dict, f, indent=4)

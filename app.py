@@ -21,14 +21,12 @@ st.markdown(f" Today is {dt_weekday} - {dt_day}. of {dt_month}.")
 #######
 # SETUP
 # load previous config
-pref_dict = data.load_preferences()
-filepath = pref_dict.get("data").get("filepath")
-filename = pref_dict.get("data").get("filename")
+Pref = data.Preferences()
+filepath = Pref.pref_dict.get("data").get("filepath")
+filename = Pref.pref_dict.get("data").get("filename")
 
 if (filename in os.listdir(filepath)) and filename.endswith(".csv"):
     habit_data_exists = True
-    file = os.path.join(filepath, filename)
-    st.markdown("🔄 We imported your data from last time")
 else:
     habit_data_exists = False
 
@@ -129,38 +127,36 @@ with sidebar_input_container:
 
 #######
 # DATA
-abs_folderpath = os.path.abspath(sidebar_folder_path)
 
+# set file name and folder path
 if (sidebar_load_file_name is not None) and (sidebar_create_file_name.endswith(".csv")):
-    file = os.path.join(abs_folderpath, sidebar_load_file_name)
-    df = data.load(filename=file)
-
-    pref_dict["data"]["filepath"] = abs_folderpath
-    pref_dict["data"]["filename"] = sidebar_load_file_name
-    data.save_preferences(pref_dict)
+    filepath = sidebar_folder_path
+    filename = sidebar_load_file_name
 
 elif sidebar_create_file_button:
-    file = os.path.join(abs_folderpath, sidebar_create_file_name)
-    df = data.create(filename=file)
-
-    pref_dict["data"]["filepath"] = abs_folderpath
-    pref_dict["data"]["filename"] = sidebar_create_file_name
-    data.save_preferences(pref_dict)
+    filepath = sidebar_folder_path
+    filename = sidebar_create_file_name
 
 elif (habit_data_exists is True) and (sidebar_load_file_name is None):
-    df = data.load(filename=file)
-
-
+    st.markdown("🔄 We imported your data from last time")
 
 else:
     st.markdown("### Create or load a file to continue.")
     st.stop()
 
 
+# LOAD DATA
+HabitData = data.Data(filepath=filepath, filename=filename)
+HabitData.load()
+
+Pref.pref_dict["data"]["filepath"] = filepath
+Pref.pref_dict["data"]["filename"] = filename
+Pref.save()
+
+
 # ADD DATA
-# add data logic
 if add_row:
-    df_dict = {
+    append_dict = {
         "date": sidebar_date,
         "mood": sidebar_sleep,
         "energy": sidebar_mood,
@@ -174,7 +170,7 @@ if add_row:
         "work": sidebar_work,
     }
 
-    data.add(df=df, append_dict=df_dict, filename=file)
+    HabitData.add(append_dict=append_dict)
 
 
 # REMOVE DATA
@@ -185,7 +181,7 @@ sidebar_remove_data_container = st.sidebar.beta_expander(
 
 with sidebar_remove_data_container:
     try:
-        opt = df.date.unique()
+        opt = HabitData.data.date.unique()
     except AttributeError:
         opt = [None]
 
@@ -194,18 +190,14 @@ with sidebar_remove_data_container:
     )
     drop_row = st.button("➖ Remove values")
 
-# remove data logic
 if drop_row:
-    data.drop(
-        df=df,
-        date_index=selectbox_remove_date,
-        filename=file
-    )
+    HabitData.drop(date_index=selectbox_remove_date)
 
 
 # RELOAD DATA
 # reload table after dropping/adding values
-df = data.load(filename=file)
+HabitData = data.Data(filepath=filepath, filename=filename)
+HabitData.load()
 
 
 #######
@@ -215,33 +207,23 @@ data_container = st.beta_expander("Display your data", expanded=True)
 
 # data_container, date_select_container = st.beta_columns([3, 1])
 with data_container:
-    dataframe = st.dataframe(df)
+    dataframe = st.dataframe(HabitData.data)
 
 
 # line plot
 st.markdown("### Plot your habits over time")
-graph_container, col_select_container = st.beta_columns([3, 1])
 
-with col_select_container:
-    opt = df.columns.to_list()
+plot_container = st.beta_container()
+with plot_container:
+    opt = HabitData.data.columns.to_list()
     opt.remove("date")
     selectbox_columns = st.selectbox(
         "Select which column to plot:",
         options=opt
     )
 
-with graph_container:
-    px_line_chart = px.bar(df, x="date", y=selectbox_columns)
+    px_line_chart = px.bar(HabitData.data, x="date", y=selectbox_columns)
     line_chart = st.plotly_chart(px_line_chart)
 
-
 # def display_kpis():
-#     raise NotImplementedError
-
-# # CRUDdError
-
-# def remove_entry():
-#     raise NotImplementedError
-
-# def update_entry():
 #     raise NotImplementedError
