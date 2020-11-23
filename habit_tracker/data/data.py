@@ -4,7 +4,7 @@ import json
 from ..helper import helper
 
 
-class Data():
+class HabitData():
     name = "CRUD Operator for Data"
     description = "Load, save, append, drop or create habit data"
 
@@ -12,6 +12,7 @@ class Data():
         self,
         filepath: str,
         filename: str,
+        **kwargs
     ):
         self.file = os.path.join(os.path.abspath(filepath), filename)
 
