@@ -144,13 +144,21 @@ else:
     st.stop()
 
 
-# LOAD DATA
+# LOAD/CREATE DATA
 HabitData = data.HabitData(filepath=filepath, filename=filename)
-HabitData.load()
 
-Pref.pref_dict["data"]["filepath"] = filepath
-Pref.pref_dict["data"]["filename"] = filename
-Pref.save()
+update_pref_dict = {
+    "data": {
+        "filepath": filepath,
+        "filename": filename
+    }
+}
+Pref.update(update_pref_dict)
+
+if sidebar_create_file_button:
+    HabitData.create()
+else:
+    HabitData.load()
 
 
 # ADD DATA

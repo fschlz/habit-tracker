@@ -17,9 +17,8 @@ class HabitData():
         self.file = os.path.join(os.path.abspath(filepath), filename)
 
     def load(self):
-        df = pd.read_csv(self.file)
-        df = df.sort_values(by="date")
-        self.data = df
+        data = pd.read_csv(self.file)
+        self.data = data.sort_values(by="date")
 
     def save(self):
         self.data.to_csv(self.file, index=False)
@@ -91,6 +90,12 @@ class Preferences():
     def load(self) -> None:
         with open(self.file, "r") as f:
             self.pref_dict = json.load(f)
+
+    def update(self, update_dict: dict) -> None:
+        filepath = os.path.abspath(update_dict.get("data").get("filepath"))
+        self.pref_dict["data"]["filepath"] = filepath
+        self.pref_dict["data"]["filename"] = update_dict.get("data").get("filename")
+        self.save()
 
     def save(self) -> None:
         with open(self.file, "w") as f:
