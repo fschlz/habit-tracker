@@ -1,4 +1,6 @@
-# Habit Tracker App
+# Habit Tracker
+
+![Screenshot](https://github.com/fschlz/habit-tracker/blob/dev/habit_tracker/resources/screenshot.png)
 
 ## Idea
 
@@ -18,7 +20,6 @@ simple streamlit app to keep track of the essentials
 ## Tech Specs
 
 - run on streamlit.io
-- sqlite
-- sqlalchemy
 - pandas
 - plotly
+- save data in simple csv-file
