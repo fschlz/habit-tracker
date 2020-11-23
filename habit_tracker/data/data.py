@@ -7,6 +7,7 @@ from ..helper import helper
 # TODO: put this into a Data class
 def load(filename):
     df = pd.read_csv(filename)
+    df = df.sort_values(by="date")
     # df.date = pd.to_datetime(df.date, format="%Y-%m-%d")
     return df
 
