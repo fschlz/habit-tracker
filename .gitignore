@@ -5,3 +5,5 @@
 *.csv
 *.json
 *.ipynb
+
+!sample_habit_data.csv
