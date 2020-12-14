@@ -29,8 +29,6 @@ class HabitData():
         )
 
     def create(self, filename: str) -> None:
-        
-        self.filename = filename
 
         df_cols = [
             "date",
@@ -41,7 +39,7 @@ class HabitData():
 
         self.data = pd.DataFrame(columns=df_cols)
 
-        self.file = helper.check_file_naming(self.file, extension=".csv")
+        self.filename = helper.check_file_naming(filename, extension=".csv")
 
     def download(self):
         """Generates a link allowing the data in a given panda dataframe to be downloaded
