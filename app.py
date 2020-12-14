@@ -1,11 +1,20 @@
-import os
 import streamlit as st
 import datetime as dt
 import plotly.express as px
 from habit_tracker import data
 
 
-#######
+######
+# META
+st.set_page_config(
+    page_title="Habit Tracker",
+    page_icon="💎",
+    layout='wide',
+    initial_sidebar_state="expanded"
+)
+
+
+########
 # HEADER
 st.title("💎 Habit Tracker")
 
@@ -18,51 +27,20 @@ dt_month = dt_now.strftime("%b")
 st.markdown(f" Today is {dt_weekday} - {dt_day}. of {dt_month}.")
 
 
-#######
-# SETUP
-# load previous config
-Pref = data.Preferences()
-filepath = Pref.pref_dict.get("data").get("filepath")
-filename = Pref.pref_dict.get("data").get("filename")
-
-if (filename in os.listdir(filepath)) and filename.endswith(".csv"):
-    habit_data_exists = True
-else:
-    habit_data_exists = False
-
-
-#######
+#########
 # SIDEBAR
 st.sidebar.title("Mission Control")
 
 # LOAD/CREATE FILE
 sidebar_data_container = st.sidebar.beta_expander(
-    "💫 Load or Create a file", expanded=(not habit_data_exists)
+    "💫 Load or Create a file", expanded=True
 )
 
 with sidebar_data_container:
-    st.markdown("### 💾 Folder to load from / save to")
-    sidebar_folder_path = st.text_input(
-        "Choose a folder", value="."
+    st.markdown("### 🗂 Load data")
+    sidebar_uploaded_file = st.file_uploader(
+        "Choose your .csv file"
     )
-
-    st.markdown("### 🗂 Load an existing file")
-    try:
-        sidebar_load_file_name = st.selectbox(
-            "Choose a file", options=[None]+os.listdir(sidebar_folder_path)
-        )
-    except FileNotFoundError:
-        st.markdown(
-            f"""❌ <b>EEEHHHHT!</b>
-            <br>🤔 That directory does not exist.
-            <br>Please type in an existing directory
-            <br>
-            <br>Here is a list of items in your current working directory:
-            <br><i>{os.listdir(".")}</i>
-            """,
-            unsafe_allow_html=True
-        )
-        st.stop()
 
     st.markdown("### ✨ or create a new file")
 
@@ -74,7 +52,7 @@ with sidebar_data_container:
 
 # INPUT
 sidebar_input_container = st.sidebar.beta_expander(
-    "💪🏼 How did you do today?", expanded=habit_data_exists
+    "💪🏼 How did you do today?", expanded=False
 )
 
 with sidebar_input_container:
@@ -121,53 +99,47 @@ with sidebar_input_container:
         "🏆 Did you work towards your goals?", (0, 1)
     )
 
-    # Add data button
+    # "add data" button
     add_row = st.button("➕ Add values")
 
 
-#######
+######
 # DATA
-# set file name and folder path
-if (sidebar_load_file_name is not None) and (sidebar_create_file_name.endswith(".csv")):
-    filepath = sidebar_folder_path
-    filename = sidebar_load_file_name
+@st.cache(allow_output_mutation=True)
+def get_file(input_file):
+    HabitData = data.HabitData()
+    HabitData.load(file=input_file)
+    return HabitData
+
+
+@st.cache(allow_output_mutation=True)
+def create_file(filename):
+    HabitData = data.HabitData()
+    HabitData.create(filename=filename)
+    return HabitData
+
+
+# LOAD/CREATE DATA
+if sidebar_uploaded_file is not None:
+    st.markdown("🔄 Data loaded.")
+    HabitData = get_file(sidebar_uploaded_file)
 
 elif sidebar_create_file_button:
-    filepath = sidebar_folder_path
-    filename = sidebar_create_file_name
-
-elif (habit_data_exists is True) and (sidebar_load_file_name is None):
-    st.markdown("🔄 We imported your data from last time")
+    st.markdown("✨ File created.")
+    HabitData = create_file(sidebar_create_file_name)
 
 else:
     st.markdown("### Create or load a file to continue.")
     st.stop()
 
 
-# LOAD/CREATE DATA
-HabitData = data.HabitData(filepath=filepath, filename=filename)
-
-update_pref_dict = {
-    "data": {
-        "filepath": filepath,
-        "filename": filename
-    }
-}
-Pref.update(update_pref_dict)
-
-if sidebar_create_file_button:
-    HabitData.create()
-else:
-    HabitData.load()
-
-
 # ADD DATA
 if add_row:
     append_dict = {
         "date": sidebar_date,
-        "mood": sidebar_sleep,
-        "energy": sidebar_mood,
-        "sleep": sidebar_energy,
+        "sleep": sidebar_sleep,
+        "mood": sidebar_mood,
+        "energy": sidebar_energy,
         "food": sidebar_food,
         "exercise": sidebar_exercise,
         "meditation": sidebar_meditation,
@@ -201,13 +173,28 @@ if drop_row:
     HabitData.drop(date_index=selectbox_remove_date)
 
 
-# RELOAD DATA
-# reload table after dropping/adding values
-HabitData = data.HabitData(filepath=filepath, filename=filename)
-HabitData.load()
+# DOWNLOAD DATA
+sidebar_download_data = st.sidebar.button("⬇️ Download data")
+
+if sidebar_download_data:
+    st.sidebar.markdown(HabitData.download(), unsafe_allow_html=True)
 
 
-#######
+# ######
+# # KPIs
+
+# mean_container = st.beta_container()  # , current_container = st.beta_columns([1, 1])
+# with mean_container:
+#     mean_dict = HabitData.data.mean().to_dict()
+#     for k, v in mean_dict.items():
+#         st.markdown(f"""### {k}:""")
+#         st.markdown(f"""# {v}""")
+
+# st.dataframe(pd.DataFrame(HabitData.data.mean().to_dict(), index=[0]))
+HabitData.data["avg_performance"] = HabitData.data.set_index("date").sum(axis=1).div(28).values
+
+
+#########
 # VISUALS
 # dataframe
 data_container = st.beta_expander("Display your data", expanded=True)
@@ -230,6 +217,7 @@ with info_container:
     )
 
     m = round(HabitData.data[selectbox_columns].mean(), 2)
+
     metric_dict = {
         "mood": "lvl",
         "energy": "lvl",
@@ -242,26 +230,15 @@ with info_container:
         "learning": "%",
         "work": "%",
     }
+
     # {metric_dict.get(selectbox_columns)}
-    st.markdown(f"""# mean // {m}""")
+    st.markdown(f"""# avg // {m}""")
 
 with plot_container:
     px_chart = px.bar(
         HabitData.data,
-        x="date", y=selectbox_columns,
+        x="date",
+        y=selectbox_columns,
         # marginal="box", hover_data=HabitData.data.columns
     )
     st.plotly_chart(px_chart, use_container_width=True)
-
-
-# # KPIs
-# st.markdown("### Here's your average performance")
-
-# mean_container = st.beta_container()  # , current_container = st.beta_columns([1, 1])
-# with mean_container:
-#     mean_dict = HabitData.data.mean().to_dict()
-#     for k, v in mean_dict.items():
-#         st.markdown(f"""### {k}:""")
-#         st.markdown(f"""# {v}""")
-
-# st.dataframe(pd.DataFrame(HabitData.data.mean().to_dict(), index=[0]))
