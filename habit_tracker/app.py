@@ -1,7 +1,7 @@
 import streamlit as st
 import datetime as dt
 import plotly.express as px
-from habit_tracker import data
+from modules import data
 
 
 ######
