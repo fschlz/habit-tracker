@@ -24,19 +24,8 @@ simple streamlit app to keep track of the essentials
 - plotly
 - save data in simple csv-file
 
-## Docker
-
-- deploy in Docker
-- `cd` into project folder and then run
+## Run baby run
 
 ```shell
-docker-compose up
-```
-
-OR
-
-```shell
-docker build -t habit_tracker .
-
-docker run --publish 8501:8501 --detach --name ht habit_tracker
+streamlit run app.py
 ```
